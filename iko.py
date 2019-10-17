@@ -6,7 +6,7 @@ Use load to marshal from request to mongo.
 Use dump to marshal from mongo to response.
 """
 from typing import Dict
-
+from typing import Type
 
 OPTIONAL = object()
 
@@ -14,40 +14,43 @@ OPTIONAL = object()
 class Field:
     def __init__(
             self,
-            required=False,
             default=OPTIONAL,
             dump_to=None,
             load_from=None,
+            outer_name=None,
     ):
-        if required:
-            assert default == OPTIONAL
-        self.required = required
+        if outer_name is not None:
+            assert dump_to is None and load_from is None
         self.default = default
-        self.dump_to = dump_to
-        self.load_from = load_from
+        self.dump_to = dump_to or outer_name
+        self.load_from = load_from or outer_name
 
     async def dump(self, data, attr, context):
-        if self.required:
-            return data[attr]
         return data.get(attr, self.default)
 
     async def load(self, data, attr, context):
-        if self.required:
-            return data[attr]
         return data.get(attr, self.default)
+
+
+class Const(Field):
+    def __init__(self, value):
+        self.value = value
+        super().__init__()
+
+    async def load(self, data, attr, context):
+        return self.value
 
 
 class Nested(Field):
     def __init__(
             self,
-            schema: 'Schema',
-            required=False,
+            schema: Type['Schema'],
             default=OPTIONAL,
             dump_to=None,
             load_from=None,
     ):
         self.schema = schema
-        super().__init__(required, default, dump_to, load_from)
+        super().__init__(default, dump_to, load_from)
 
     async def dump(self, data, attr, context):
         value = await super().dump(data, attr, context)
@@ -59,13 +62,12 @@ class Nested(Field):
 class List(Field):
     def __init__(
             self,
-            schema: 'Schema' = None,
-            required=False,
+            schema: Type['Schema'] = None,
             dump_to=None,
             load_from=None,
     ):
         self.schema = schema
-        super().__init__(required, dump_to=dump_to, load_from=load_from)
+        super().__init__(dump_to=dump_to, load_from=load_from)
 
     async def dump(self, data, attr, context):
         value = await super().dump(data, attr, context)
@@ -81,7 +83,7 @@ class List(Field):
         if value == OPTIONAL:
             return value
         return [
-            await self.schema.load(item) if self.schema else item
+            await self.schema.load(item, context) if self.schema else item
             for item in value
         ]
 
