@@ -1,5 +1,5 @@
 """
-Iko(移行) is an asynchronous micro-framework
+Iko (移行) is an asynchronous micro-framework
 for converting data into different structures.
 
 Use load to marshal from request to mongo.
@@ -12,8 +12,6 @@ OPTIONAL = object()
 
 
 class Field:
-    context: dict
-
     def __init__(
             self,
             required=False,
@@ -28,12 +26,12 @@ class Field:
         self.dump_to = dump_to
         self.load_from = load_from
 
-    async def dump(self, data, attr):
+    async def dump(self, data, attr, context):
         if self.required:
             return data[attr]
         return data.get(attr, self.default)
 
-    async def load(self, data, attr):
+    async def load(self, data, attr, context):
         if self.required:
             return data[attr]
         return data.get(attr, self.default)
@@ -51,11 +49,11 @@ class Nested(Field):
         self.schema = schema
         super().__init__(required, default, dump_to, load_from)
 
-    async def dump(self, data, attr):
-        value = await super().dump(data, attr)
+    async def dump(self, data, attr, context):
+        value = await super().dump(data, attr, context)
         if value == OPTIONAL:
             return value
-        return await self.schema.dump(value)
+        return await self.schema.dump(value, context)
 
 
 class List(Field):
@@ -69,17 +67,17 @@ class List(Field):
         self.schema = schema
         super().__init__(required, dump_to=dump_to, load_from=load_from)
 
-    async def dump(self, data, attr):
-        value = await super().dump(data, attr)
+    async def dump(self, data, attr, context):
+        value = await super().dump(data, attr, context)
         if value == OPTIONAL:
             return value
         return [
-            await self.schema.dump(item) if self.schema else item
+            await self.schema.dump(item, context) if self.schema else item
             for item in value
         ]
 
-    async def load(self, data, attr):
-        value = await super().load(data, attr)
+    async def load(self, data, attr, context):
+        value = await super().load(data, attr, context)
         if value == OPTIONAL:
             return value
         return [
@@ -106,32 +104,23 @@ class SchemaMeta(type):
 class Schema(metaclass=SchemaMeta):
     __fields__: Dict[str, Field]
 
-    def __init__(self, context=None):
-        self.context = context or {}
-        self.fill_context(self.context)
-
-    def fill_context(self, context):
-        for _, field in self.__fields__.items():
-            field.context = context
-            if isinstance(field, Nested):
-                field.schema.fill_context(context)
-            elif isinstance(field, List) and field.schema:
-                field.schema.fill_context(context)
-
-    async def dump(self, data):
+    @classmethod
+    async def dump(cls, data, context=None):
         result = {}
-        for attr, field in self.__fields__.items():
-            value = await field.dump(data, attr)
+        for attr, field in cls.__fields__.items():
+            value = await field.dump(data, attr, context)
             if value != OPTIONAL:
                 result[field.dump_to or attr] = value
         return result
 
-    async def load(self, data):
+    @classmethod
+    async def load(cls, data, context=None):
         result = {}
-        for attr, field in self.__fields__.items():
+        for attr, field in cls.__fields__.items():
             value = await field.load(
                 data,
                 field.load_from if field.load_from else attr,
+                context,
             )
             if value != OPTIONAL:
                 result[attr] = value
