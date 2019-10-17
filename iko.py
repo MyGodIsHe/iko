@@ -14,14 +14,26 @@ OPTIONAL = object()
 class Field:
     context: dict
 
-    def __init__(self, required=False, default=OPTIONAL, dump_to=None):
+    def __init__(
+            self,
+            required=False,
+            default=OPTIONAL,
+            dump_to=None,
+            load_from=None,
+    ):
         if required:
             assert default == OPTIONAL
         self.required = required
         self.default = default
         self.dump_to = dump_to
+        self.load_from = load_from
 
     async def dump(self, data, attr):
+        if self.required:
+            return data[attr]
+        return data.get(attr, self.default)
+
+    async def load(self, data, attr):
         if self.required:
             return data[attr]
         return data.get(attr, self.default)
@@ -34,9 +46,10 @@ class Nested(Field):
             required=False,
             default=OPTIONAL,
             dump_to=None,
+            load_from=None,
     ):
         self.schema = schema
-        super().__init__(required, default, dump_to)
+        super().__init__(required, default, dump_to, load_from)
 
     async def dump(self, data, attr):
         value = await super().dump(data, attr)
@@ -46,9 +59,15 @@ class Nested(Field):
 
 
 class List(Field):
-    def __init__(self, schema: 'Schema' = None, required=False, dump_to=None):
+    def __init__(
+            self,
+            schema: 'Schema' = None,
+            required=False,
+            dump_to=None,
+            load_from=None,
+    ):
         self.schema = schema
-        super().__init__(required, dump_to=dump_to)
+        super().__init__(required, dump_to=dump_to, load_from=load_from)
 
     async def dump(self, data, attr):
         value = await super().dump(data, attr)
@@ -56,6 +75,15 @@ class List(Field):
             return value
         return [
             await self.schema.dump(item) if self.schema else item
+            for item in value
+        ]
+
+    async def load(self, data, attr):
+        value = await super().load(data, attr)
+        if value == OPTIONAL:
+            return value
+        return [
+            await self.schema.load(item) if self.schema else item
             for item in value
         ]
 
@@ -96,4 +124,15 @@ class Schema(metaclass=SchemaMeta):
             value = await field.dump(data, attr)
             if value != OPTIONAL:
                 result[field.dump_to or attr] = value
+        return result
+
+    async def load(self, data):
+        result = {}
+        for attr, field in self.__fields__.items():
+            value = await field.load(
+                data,
+                field.load_from if field.load_from else attr,
+            )
+            if value != OPTIONAL:
+                result[attr] = value
         return result
