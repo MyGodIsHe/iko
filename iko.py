@@ -1,10 +1,3 @@
-"""
-Iko (移行) is an asynchronous micro-framework
-for converting data into different structures.
-
-Use load to marshal from request to mongo.
-Use dump to marshal from mongo to response.
-"""
 from typing import Dict
 from typing import Type
 
