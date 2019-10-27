@@ -1,3 +1,4 @@
+import asyncio
 from typing import Dict
 from typing import Type
 
@@ -19,16 +20,31 @@ class Field:
         self.load_from = load_from or outer_name
 
     async def dump(self, data, attr, context):
-        return data.get(attr, self.default)
+        value = data.get(attr, self.default)
+        if value == OPTIONAL:
+            return value
+        return await self.post_dump(value, context)
+
+    async def post_dump(self, value, context):
+        return value
 
     async def load(self, data, attr, context):
-        return data.get(attr, self.default)
+        value = data.get(attr, self.default)
+        if value == OPTIONAL:
+            return value
+        return await self.post_load(value, context)
+
+    async def post_load(self, value, context):
+        return value
 
 
 class Const(Field):
     def __init__(self, value):
         self.value = value
         super().__init__()
+
+    async def dump(self, data, attr, context):
+        return self.value
 
     async def load(self, data, attr, context):
         return self.value
@@ -41,42 +57,44 @@ class Nested(Field):
             default=OPTIONAL,
             dump_to=None,
             load_from=None,
+            outer_name=None,
     ):
         self.schema = schema
-        super().__init__(default, dump_to, load_from)
+        super().__init__(default, dump_to, load_from, outer_name)
 
-    async def dump(self, data, attr, context):
-        value = await super().dump(data, attr, context)
-        if value == OPTIONAL:
-            return value
-        return await self.schema.dump(value, context)
+    async def post_dump(self, value, context):
+        return await self.schema.dump(value, context=context)
 
 
 class List(Field):
     def __init__(
             self,
             schema: Type['Schema'] = None,
+            default=OPTIONAL,
             dump_to=None,
             load_from=None,
+            outer_name=None,
     ):
         self.schema = schema
-        super().__init__(dump_to=dump_to, load_from=load_from)
+        super().__init__(default, dump_to, load_from, outer_name)
 
-    async def dump(self, data, attr, context):
-        value = await super().dump(data, attr, context)
-        if value == OPTIONAL:
-            return value
+    async def post_dump(self, value, context):
         return [
-            await self.schema.dump(item, context) if self.schema else item
+            (
+                await self.schema.dump(item, context=context)
+                if self.schema
+                else item
+            )
             for item in value
         ]
 
-    async def load(self, data, attr, context):
-        value = await super().load(data, attr, context)
-        if value == OPTIONAL:
-            return value
+    async def post_load(self, value, context):
         return [
-            await self.schema.load(item, context) if self.schema else item
+            (
+                await self.schema.load(item, context=context)
+                if self.schema
+                else item
+            )
             for item in value
         ]
 
@@ -100,23 +118,33 @@ class Schema(metaclass=SchemaMeta):
     __fields__: Dict[str, Field]
 
     @classmethod
-    async def dump(cls, data, context=None):
-        result = {}
-        for attr, field in cls.__fields__.items():
-            value = await field.dump(data, attr, context)
-            if value != OPTIONAL:
-                result[field.dump_to or attr] = value
-        return result
+    async def dump(cls, data, *, context=None):
+        values = await asyncio.gather(*[
+            field.dump(data, attr, context)
+            for attr, field in cls.__fields__.items()
+        ])
+        attrs = [
+            field.dump_to or attr
+            for attr, field in cls.__fields__.items()
+        ]
+        return {
+            attr: value
+            for attr, value in zip(attrs, values)
+            if value != OPTIONAL
+        }
 
     @classmethod
-    async def load(cls, data, context=None):
-        result = {}
-        for attr, field in cls.__fields__.items():
-            value = await field.load(
+    async def load(cls, data, *, context=None):
+        values = await asyncio.gather(*[
+            field.load(
                 data,
                 field.load_from if field.load_from else attr,
                 context,
             )
-            if value != OPTIONAL:
-                result[attr] = value
-        return result
+            for attr, field in cls.__fields__.items()
+        ])
+        return {
+            attr: value
+            for attr, value in zip(cls.__fields__, values)
+            if value != OPTIONAL
+        }
