@@ -1,15 +1,27 @@
 language: python
 
 python:
-  - "3.6"
-  - "3.7"
-  - "3.8"
-  - "nightly"
+  - 3.6
+  - 3.7
+  - 3.8
+  - nightly
 
 install:
   - pip install -r requirements/ci.txt
 
 script:
-  - flake8
-  - pytest
+  - pytest --cov-report term --cov=iko .
+
+after_success:
+  - codecov
+
+jobs:
+  include:
+    - stage: lint
+      python: 3.7
+      script: flake8
+
+stages:
+  - lint
+  - test
 
