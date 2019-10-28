@@ -7,3 +7,8 @@ A list of changes between each release.
 ^^^^^^^^^^^^^^^^^^
 
 - First release
+
+0.2.0 (2019-10-28)
+^^^^^^^^^^^^^^^^^^
+
+- feat: add post methods and use gather
