@@ -16,3 +16,7 @@ iko
 
 Iko is an asynchronous micro-framework for
 converting data into different structures.
+
+Inspired marshmallow_.
+
+.. _marshmallow: https://github.com/marshmallow-code/marshmallow
