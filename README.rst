@@ -14,9 +14,9 @@ iko
 .. image:: https://travis-ci.org/MyGodIsHe/iko.svg?branch=master
     :target: https://travis-ci.org/MyGodIsHe/iko
     
-    
 .. image:: https://img.shields.io/pypi/dm/iko.svg
     :target: https://pypi.python.org/pypi/iko
+
 
 Iko is an asynchronous micro-framework for
 converting data into different structures.
