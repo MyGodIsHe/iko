@@ -11,10 +11,10 @@ setup(
         'for converting data into different structures.'
     ),
     long_description=long_description,
-    version='0.2.0',
+    version='0.3.0',
     license='MIT',
-    author='Ilya Chistyakov',
-    author_email='ilchistyakov@gmail.com',
+    author='Ilya Chistyakov, Pavel Polyakov',
+    author_email='ilchistyakov@gmail.com, pollydrag@yandex.ru',
     py_modules=['iko'],
     zip_safe=False,
     python_requires=">=3.6",

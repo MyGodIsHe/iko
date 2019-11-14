@@ -65,6 +65,9 @@ class Nested(Field):
     async def post_dump(self, value, context):
         return await self.schema.dump(value, context=context)
 
+    async def post_load(self, value, context):
+        return await self.schema.load(value, context=context)
+
 
 class List(Field):
     def __init__(
@@ -105,11 +108,13 @@ class SchemaMeta(type):
         for base in bases:
             if issubclass(base, Schema):
                 fields.update(base.__fields__)
-        fields.update({
-            name: field
-            for name, field in attrs.items()
-            if isinstance(field, Field)
-        })
+        fields.update(
+            {
+                name: field
+                for name, field in attrs.items()
+                if isinstance(field, Field)
+            },
+        )
         attrs['__fields__'] = fields
         return super().__new__(mcs, name, bases, attrs)
 
@@ -119,13 +124,16 @@ class Schema(metaclass=SchemaMeta):
 
     @classmethod
     async def dump(cls, data, *, context=None):
-        values = await asyncio.gather(*[
-            field.dump(data, attr, context)
-            for attr, field in cls.__fields__.items()
-        ])
+        if context is None:
+            context = {}
+        values = await asyncio.gather(
+            *[
+                field.dump(data, attr, context)
+                for attr, field in cls.__fields__.items()
+            ],
+        )
         attrs = [
-            field.dump_to or attr
-            for attr, field in cls.__fields__.items()
+            field.dump_to or attr for attr, field in cls.__fields__.items()
         ]
         return {
             attr: value
@@ -134,17 +142,37 @@ class Schema(metaclass=SchemaMeta):
         }
 
     @classmethod
+    def dump_many(cls, items, *, context=None):
+        if context is None:
+            context = {}
+        return asyncio.gather(
+            *[cls.dump(item, context=context) for item in items],
+        )
+
+    @classmethod
     async def load(cls, data, *, context=None):
-        values = await asyncio.gather(*[
-            field.load(
-                data,
-                field.load_from if field.load_from else attr,
-                context,
-            )
-            for attr, field in cls.__fields__.items()
-        ])
+        if context is None:
+            context = {}
+        values = await asyncio.gather(
+            *[
+                field.load(
+                    data,
+                    field.load_from if field.load_from else attr,
+                    context,
+                )
+                for attr, field in cls.__fields__.items()
+            ],
+        )
         return {
             attr: value
             for attr, value in zip(cls.__fields__, values)
             if value != OPTIONAL
         }
+
+    @classmethod
+    def load_many(cls, items, *, context=None):
+        if context is None:
+            context = {}
+        return asyncio.gather(
+            *[cls.load(item, context=context) for item in items],
+        )
