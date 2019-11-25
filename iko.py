@@ -38,18 +38,6 @@ class Field:
         return value
 
 
-class Const(Field):
-    def __init__(self, value):
-        self.value = value
-        super().__init__()
-
-    async def dump(self, data, attr, context):
-        return self.value
-
-    async def load(self, data, attr, context):
-        return self.value
-
-
 class Nested(Field):
     def __init__(
             self,

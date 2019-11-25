@@ -24,3 +24,20 @@ converting data into different structures.
 Inspired marshmallow_.
 
 .. _marshmallow: https://github.com/marshmallow-code/marshmallow
+
+Typical usage
+=============
+
+The main use-case of this framework is web service’s request and response data marshaling.
+
+Example:
+
+.. code-block:: python
+
+    @swagger.schema('UserRequest', 'UserResponse')
+    async def handler(request):
+        body = await request.json()
+        data = await UserSchema.load(body)
+        await mongodb.users.insert_one(data)
+        data = await mongodb.users.find_one({'_id': data['id']})
+        return Response(await UserSchema.dump(data))

@@ -3,6 +3,11 @@ Changelog
 
 A list of changes between each release.
 
+
+0.3.1 (2019-11-25)
+^^^^^^^^^^^^^^^^^^
+- feat: remove Const field
+
 0.3.0 (2019-11-14)
 ^^^^^^^^^^^^^^^^^^
 
