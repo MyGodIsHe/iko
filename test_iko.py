@@ -24,6 +24,10 @@ class PrivateField(iko.Field):
         return value.decode('utf-8').strip()
 
 
+class Age(iko.Field):
+    OPTIONAL_LIST = (None, iko.OPTIONAL)
+
+
 class Named(iko.Schema):
     name = iko.Field()
 
@@ -36,7 +40,7 @@ class HumanSchema(Named):
 class Pet(iko.Schema):
     owner = iko.Nested(HumanSchema)
     friends = iko.List(HumanSchema)
-    age = iko.Field(default='infinity')
+    age = Age(default=0)
 
 
 class CatSchema(Named, Pet):
@@ -47,10 +51,11 @@ class CatSchema(Named, Pet):
 @pytest.mark.parametrize(
     'data, expected',
     [
-        (
+        pytest.param(
             {
                 '_id': '42',
                 'name': 'Jake',
+                'age': 100,
                 'owner': {
                     'name': 'Ilya',
                     'gender': 'male',
@@ -70,7 +75,7 @@ class CatSchema(Named, Pet):
             {
                 'id': '42',
                 'name': 'Jake',
-                'age': 'infinity',
+                'age': 100,
                 'owner': {
                     'name': 'Ilya',
                     'gender': 'male',
@@ -86,14 +91,23 @@ class CatSchema(Named, Pet):
                         'gender': 'male'
                     }
                 ]
-            }
+            },
+            id='base'
         ),
-        (
+        pytest.param(
             {},
             {
-                'age': 'infinity',
-            }
-        )
+                'age': 0,
+            },
+            id='default'
+        ),
+        pytest.param(
+            {
+                'age': None,
+            },
+            {},
+            id='optional'
+        ),
     ]
 )
 async def test_dump(data, expected):
@@ -104,10 +118,11 @@ async def test_dump(data, expected):
 @pytest.mark.parametrize(
     'data, expected',
     [
-        (
+        pytest.param(
             {
                 'id': '42',
                 'name': 'Jake',
+                'age': 100,
                 'owner': {
                     'name': 'Ilya',
                     'gender': 'male',
@@ -127,7 +142,7 @@ async def test_dump(data, expected):
             {
                 '_id': '42',
                 'name': 'Jake',
-                'age': 'infinity',
+                'age': 100,
                 'owner': {
                     'name': 'Ilya',
                     'gender': 'male',
@@ -143,13 +158,22 @@ async def test_dump(data, expected):
                         'gender': 'male'
                     }
                 ]
-            }
+            },
+            id='base',
         ),
-        (
+        pytest.param(
             {},
             {
-                'age': 'infinity',
-            }
+                'age': 0,
+            },
+            id='default',
+        ),
+        pytest.param(
+            {
+                'age': None,
+            },
+            {},
+            id='optional',
         )
     ]
 )
@@ -164,7 +188,7 @@ async def test_load(data, expected):
         (
             {},
             {
-                'age': 'infinity',
+                'age': 0,
             }
         )
     ]
