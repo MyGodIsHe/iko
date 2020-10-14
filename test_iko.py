@@ -29,7 +29,7 @@ class Age(iko.Field):
 
 
 class Named(iko.Schema):
-    name = iko.Field()
+    name = iko.Field(default=lambda: 'dummy')
 
 
 class HumanSchema(Named):
@@ -97,6 +97,7 @@ class CatSchema(Named, Pet):
         pytest.param(
             {},
             {
+                'name': 'dummy',
                 'age': 0,
             },
             id='default'
@@ -105,7 +106,9 @@ class CatSchema(Named, Pet):
             {
                 'age': None,
             },
-            {},
+            {
+                'name': 'dummy'
+            },
             id='optional'
         ),
     ]
@@ -164,6 +167,7 @@ async def test_dump(data, expected):
         pytest.param(
             {},
             {
+                'name': 'dummy',
                 'age': 0,
             },
             id='default',
@@ -172,7 +176,9 @@ async def test_dump(data, expected):
             {
                 'age': None,
             },
-            {},
+            {
+                'name': 'dummy',
+            },
             id='optional',
         )
     ]
@@ -188,6 +194,7 @@ async def test_load(data, expected):
         (
             {},
             {
+                'name': 'dummy',
                 'age': 0,
             }
         )
