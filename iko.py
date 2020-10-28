@@ -52,20 +52,6 @@ class Field:
         return value
 
 
-class Const(Field):
-    def __init__(self, value, dump_to=None, load_from=None, outer_name=None):
-        self.value = value
-        super().__init__(
-            dump_to=dump_to, load_from=load_from, outer_name=outer_name,
-        )
-
-    async def dump(self, data, attr, context):
-        return self.value
-
-    async def load(self, data, attr, context):
-        return self.value
-
-
 class Nested(Field):
     schema: 'Schema'
 

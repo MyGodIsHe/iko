@@ -142,13 +142,3 @@ async def test_optional():
     assert await Schema.load({'field': 43}) == {'field': 43}
     assert await Schema.dump({'field': None}) == {}
     assert await Schema.load({'field': None}) == {}
-
-
-async def test_const():
-    class Schema(iko.Schema):
-        field = iko.Const(42)
-
-    assert await Schema.dump({'field': 43}) == {'field': 42}
-    assert await Schema.load({'field': 43}) == {'field': 42}
-    assert await Schema.dump({}) == {'field': 42}
-    assert await Schema.load({}) == {'field': 42}

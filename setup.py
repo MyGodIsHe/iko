@@ -11,7 +11,7 @@ setup(
         'for converting data into different structures.'
     ),
     long_description=long_description,
-    version='0.3.1',
+    version='0.4.0',
     license='MIT',
     author='Ilya Chistyakov, Pavel Polyakov',
     author_email='ilchistyakov@gmail.com, pollydrag@yandex.ru',

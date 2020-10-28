@@ -3,6 +3,11 @@ Changelog
 
 A list of changes between each release.
 
+0.4.0 (2020-10-27)
+^^^^^^^^^^^^^^^^^^
+- feat: list can use schema
+- feat: schema_from_dict
+- feat: add schema options
 
 0.3.1 (2019-11-25)
 ^^^^^^^^^^^^^^^^^^
